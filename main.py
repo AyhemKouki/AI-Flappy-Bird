@@ -1,4 +1,4 @@
-import pygame , sys 
+import pygame , sys , random
 
 pygame.init()
 
@@ -94,18 +94,68 @@ class Bird:
         self.jump()
         self.draw_bird()
 
+class Pipe():
+    def __init__(self , x , y):
+        self.pipe_img = PIPE_IMG
+        self.rotated_pipe_img = pygame.transform.rotate(PIPE_IMG,180)
+        self.rect = self.pipe_img.get_rect()
+        self.rotated_rect = self.rotated_pipe_img.get_rect()
+        self.gap = 140
+        self.rect.x = x
+        self.rotated_rect.x = x
+        self.rect.y = y
+        self.rotated_rect.bottom = y - self.gap
+        
+    def move_pipe(self):
+        self.rect.x -= 1
+        self.rotated_rect.x -= 1
+
+    def draw_pipe(self):
+        screen.blit(self.pipe_img,self.rect)
+        screen.blit(self.rotated_pipe_img,self.rotated_rect)
+
+    def update_pipe(self):
+        self.draw_pipe()
+        self.move_pipe()
+
 # 336 is the length of a base image
 base_list = [Base(0) , Base(336),Base(672)]
 bird = Bird()
+pipe_list = []
+timer = 180
+
+def check_collision():
+    for pipe in pipe_list:
+        if bird.rect.colliderect(pipe.rect) or bird.rect.colliderect(pipe.rotated_rect):
+            print("collision with pipe")
+
+    if bird.rect.bottom >= SCREEN_HEIGHT - 136:  # Collision with the base
+        print("collision with base")
+
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
+
     screen.blit(BG_IMG,(0,-100))
-    for index , base in enumerate(base_list):
+
+    #PIPE SPAWN EVERY 3s
+    if timer == 180 :
+        y = random.randint(240,588)
+        pipe_list.append(Pipe(SCREEN_WIDTH,y))
+        timer =  0
+    timer += 1
+    for pipe in pipe_list[:]:  # we use a copy of the list to avoid modification issues
+        pipe.update_pipe()
+        if pipe.rect.x < -60:
+            pipe_list.remove(pipe)
+
+    for base in base_list:
         base.update()
     bird.update_bird()
+
+    check_collision()
 
     clock.tick(FPS)
 
