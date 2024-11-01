@@ -69,6 +69,7 @@ class Bird:
 
         self.rect.y += self.y_vel * 0.9
         
+        # bird stay at ground level when it hits the ground
         if self.rect.y >= SCREEN_HEIGHT - 136:
             self.rect.y = SCREEN_HEIGHT - 136
             self.y_vel = 0
@@ -119,14 +120,7 @@ class Pipe():
 
     def update_pipe(self):
         self.draw_pipe()
-        self.move_pipe()
-
-def update_score():
-    global score
-    for pipe in pipe_list:
-        if pipe.rect.right < bird.rect.left and not pipe.passed:
-            score += 1
-            pipe.passed = True 
+        self.move_pipe()        
 
 def display_score():
     score_text = font.render(f"Score: {score}", True, (255, 255, 255))
@@ -134,24 +128,23 @@ def display_score():
 
 # 336 is the length of a base image
 base_list = [Base(0) , Base(336),Base(672)]
-bird = Bird()
 pipe_list = []
-score = 0
 
-def check_collision():
-    global score
-    for pipe in pipe_list:
-        if bird.rect.colliderect(pipe.rect) or bird.rect.colliderect(pipe.rotated_rect):
-            print("collision with pipe")
-            score = 0
-
-    if bird.rect.bottom >= SCREEN_HEIGHT - 136:  # Collision with the base
-        print("collision with base")
-        score = 0
-
-def fitness():
+def fitness(genomes , config):
+    global score 
     timer = 180
-    while True:
+    birds = []
+    nets = []
+    genomes_list = []
+
+    for genome in genomes:
+        birds.append(Bird())
+        net = neat.nn.FeedForwardNetwork(genome,config)
+        nets.append(net)
+        genomes_list.append(genome)
+        genome.fitness = 0
+
+    while True and len(birds)>0:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -170,20 +163,38 @@ def fitness():
             if pipe.rect.x < -60:
                 pipe_list.remove(pipe)
 
-        # Update and display the score
-        update_score()
-        display_score()
-
+        #move base
         for base in base_list:
             base.update()
-        bird.update_bird()
 
-        check_collision()
+        # CHECK COLLISION
+        for index , bird in enumerate(birds[:]):
+            bird.update_bird()
+            for pipe in pipe_list:
+                if bird.rect.colliderect(pipe.rect) or bird.rect.colliderect(pipe.rotated_rect):
+                    genomes_list[index].fitness -= 1
+                    birds.pop(index)
+                    nets.pop(index)
+                    genomes_list.pop(index)
+                    score = 0
+
+                if bird.rect.bottom >= SCREEN_HEIGHT - 136:  # Collision with the base
+                    genomes_list[index].fitness -= 1
+                    birds.pop(index)
+                    nets.pop(index)
+                    genomes_list.pop(index)
+                    score = 0
+
+                # Update and display the score
+                if pipe.rect.right < bird.rect.left and not pipe.passed:
+                    genomes_list[index].fitness += 5
+                    score += 1
+                    pipe.passed = True 
+        display_score()
 
         clock.tick(FPS)
 
         pygame.display.flip()
-fitness()
 
 def run_neat(config_file):
     config = neat.config.Config(
