@@ -1,4 +1,4 @@
-import pygame , sys , random
+import pygame , sys , random , neat , os
 
 pygame.init()
 
@@ -15,6 +15,8 @@ BG_IMG = pygame.transform.scale2x(pygame.image.load("imgs/bg.png").convert_alpha
 BASE_IMG =  pygame.image.load("imgs/base.png").convert_alpha()
 
 pygame.display.set_icon(BIRD_IMAGES[1])
+
+font = pygame.font.Font(pygame.font.get_default_font(), 30)
 
 class Base:
     def __init__(self , x):
@@ -105,6 +107,7 @@ class Pipe():
         self.rotated_rect.x = x
         self.rect.y = y
         self.rotated_rect.bottom = y - self.gap
+        self.passed = False
         
     def move_pipe(self):
         self.rect.x -= 1
@@ -118,45 +121,88 @@ class Pipe():
         self.draw_pipe()
         self.move_pipe()
 
+def update_score():
+    global score
+    for pipe in pipe_list:
+        if pipe.rect.right < bird.rect.left and not pipe.passed:
+            score += 1
+            pipe.passed = True 
+
+def display_score():
+    score_text = font.render(f"Score: {score}", True, (255, 255, 255))
+    screen.blit(score_text, (20, 20))
+
 # 336 is the length of a base image
 base_list = [Base(0) , Base(336),Base(672)]
 bird = Bird()
 pipe_list = []
-timer = 180
+score = 0
 
 def check_collision():
+    global score
     for pipe in pipe_list:
         if bird.rect.colliderect(pipe.rect) or bird.rect.colliderect(pipe.rotated_rect):
             print("collision with pipe")
+            score = 0
 
     if bird.rect.bottom >= SCREEN_HEIGHT - 136:  # Collision with the base
         print("collision with base")
+        score = 0
 
-while True:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
+def fitness():
+    timer = 180
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
 
-    screen.blit(BG_IMG,(0,-100))
+        screen.blit(BG_IMG,(0,-100))
 
-    #PIPE SPAWN EVERY 3s
-    if timer == 180 :
-        y = random.randint(240,588)
-        pipe_list.append(Pipe(SCREEN_WIDTH,y))
-        timer =  0
-    timer += 1
-    for pipe in pipe_list[:]:  # we use a copy of the list to avoid modification issues
-        pipe.update_pipe()
-        if pipe.rect.x < -60:
-            pipe_list.remove(pipe)
+        #PIPE SPAWN EVERY 3s
+        if timer == 180 :
+            y = random.randint(240,588)
+            pipe_list.append(Pipe(SCREEN_WIDTH,y))
+            timer =  0
+        timer += 1
+        for pipe in pipe_list[:]:  # we use a copy of the list to avoid modification issues
+            pipe.update_pipe()
+            if pipe.rect.x < -60:
+                pipe_list.remove(pipe)
 
-    for base in base_list:
-        base.update()
-    bird.update_bird()
+        # Update and display the score
+        update_score()
+        display_score()
 
-    check_collision()
+        for base in base_list:
+            base.update()
+        bird.update_bird()
 
-    clock.tick(FPS)
+        check_collision()
 
-    pygame.display.flip()
+        clock.tick(FPS)
+
+        pygame.display.flip()
+fitness()
+
+def run_neat(config_file):
+    config = neat.config.Config(
+                        neat.DefaultGenome, 
+                        neat.DefaultReproduction,
+                        neat.DefaultSpeciesSet, 
+                        neat.DefaultStagnation,
+                        config_file
+            )
+    population = neat.Population(config)
+
+    population.add_reporter(neat.StdOutReporter(True))
+    stats = neat.StatisticsReporter()
+    population.add_reporter(stats)
+
+    # 50 is the max generations will be created
+    population.run(fitness,50)
+
+if __name__ == "__main__":
+    local_dir = os.path.dirname(__file__)
+    config_path = os.path.join(local_dir, 'config.txt')
+    run_neat(config_path)
