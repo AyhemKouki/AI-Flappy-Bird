@@ -49,5 +49,4 @@ To run the game and start training the AI:
   - Bird's Y position
   - Bird's Y velocity
   - Distance to the next pipe
-  - Gap above and below the bird
-  The NEAT algorithm evolves the networks over generations, gradually improving the birds' ability to avoid pipes and survive longer.
+  - Gap above and below the bird.
