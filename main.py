@@ -50,18 +50,12 @@ class Bird:
         self.flap = False
         self.frame = 0
         
-    def jump(self):
+    def Gravity(self):
         #GRAVITY
         if self.rect.y < SCREEN_HEIGHT - 136:  # If bird is above the base
             self.y_vel += self.gravity
             if self.y_vel >= self.max_fall_speed:
                 self.y_vel = self.max_fall_speed
-        
-        #JUMP
-        press = pygame.key.get_pressed()
-        if press[pygame.K_SPACE] and not self.flap and self.rect.top > 0:
-            self.y_vel = -8
-            self.flap = True
 
         #you can jump again when the bird starts falling
         if self.y_vel >0:
@@ -94,7 +88,7 @@ class Bird:
 
     def update_bird(self):
         self.animation()
-        self.jump()
+        self.Gravity()
         self.draw_bird()
 
 class Pipe():
@@ -122,35 +116,39 @@ class Pipe():
         self.draw_pipe()
         self.move_pipe()        
 
-def display_score():
-    score_text = font.render(f"Score: {score}", True, (255, 255, 255))
-    screen.blit(score_text, (20, 20))
-
 # 336 is the length of a base image
 base_list = [Base(0) , Base(336),Base(672)]
 pipe_list = []
 
 def fitness(genomes , config):
     global score 
+    score = 0
     timer = 180
     birds = []
     nets = []
     genomes_list = []
 
-    for genome in genomes:
+    # Clear the pipe list for the new generation
+    pipe_list = []
+
+    for _,genome in genomes:
         birds.append(Bird())
-        net = neat.nn.FeedForwardNetwork(genome,config)
+        net = neat.nn.FeedForwardNetwork.create(genome,config)
         nets.append(net)
         genomes_list.append(genome)
         genome.fitness = 0
 
-    while True and len(birds)>0:
+    while len(birds)>0:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
 
         screen.blit(BG_IMG,(0,-100))
+
+        # Increment fitness for surviving longer
+        for index in range(len(birds)):
+            genomes_list[index].fitness += 0.1 
 
         #PIPE SPAWN EVERY 3s
         if timer == 180 :
@@ -166,34 +164,64 @@ def fitness(genomes , config):
         #move base
         for base in base_list:
             base.update()
-
-        # CHECK COLLISION
+            
+        birds_to_remove = []
         for index , bird in enumerate(birds[:]):
-            bird.update_bird()
+            # Find the closest pipe in front of the bird
+            closest_pipe = None
             for pipe in pipe_list:
-                if bird.rect.colliderect(pipe.rect) or bird.rect.colliderect(pipe.rotated_rect):
-                    genomes_list[index].fitness -= 1
-                    birds.pop(index)
-                    nets.pop(index)
-                    genomes_list.pop(index)
-                    score = 0
+                if pipe.rect.x + pipe.rect.width > bird.rect.x:
+                    closest_pipe = pipe
+                    break
 
-                if bird.rect.bottom >= SCREEN_HEIGHT - 136:  # Collision with the base
-                    genomes_list[index].fitness -= 1
-                    birds.pop(index)
-                    nets.pop(index)
-                    genomes_list.pop(index)
-                    score = 0
+            if closest_pipe:
+                # Input features for the neural network
+                bird_y = bird.rect.y
+                bird_velocity = bird.y_vel
+                bottom_gap_y = closest_pipe.rect.y
+                top_gap_y = closest_pipe.rotated_rect.bottom
+                distance_to_pipe = closest_pipe.rect.x - bird.rect.x
 
+                # the inputs
+                inputs = [
+                    bird_y ,
+                    bird_velocity,
+                    distance_to_pipe,
+                    bird_y - top_gap_y,
+                    bottom_gap_y - bird_y,
+                ]
+
+                output = nets[index].activate(inputs)
+                #JUMP
+                if output[0] > 0.5:  # Threshold for jumping
+                    bird.y_vel = -8
+                    bird.flap = True
+
+            bird.update_bird()
+
+            # CHECK COLLISION
+            for pipe in pipe_list:
+                if bird.rect.colliderect(pipe.rect) or bird.rect.colliderect(pipe.rotated_rect) or bird.rect.bottom >= SCREEN_HEIGHT - 136 or bird.rect.y < 0:
+                    genomes_list[index].fitness -= 1 # Penalize
+                    birds_to_remove.append(index)
+            
                 # Update and display the score
-                if pipe.rect.right < bird.rect.left and not pipe.passed:
-                    genomes_list[index].fitness += 5
-                    score += 1
-                    pipe.passed = True 
-        display_score()
+                if not pipe.passed and pipe.rect.x < bird.rect.x: 
+                    pipe.passed = True  # Mark the pipe as passed
+                    score += 1  # Increment the score
+                    genomes_list[index].fitness += 5 
+
+        # Remove collided birds 
+        for i in sorted(birds_to_remove, reverse=True):
+            birds.pop(i)
+            nets.pop(i)
+            genomes_list.pop(i)
+
+        #display score
+        score_text = font.render(f"Score: {score}", True, (255, 255, 255))
+        screen.blit(score_text, (20, 20))
 
         clock.tick(FPS)
-
         pygame.display.flip()
 
 def run_neat(config_file):
