@@ -21,7 +21,7 @@ This project is a Python implementation of Flappy Bird powered by the NEAT (Neur
 ## Installation
 1. Clone the repository:
     ```bash
-    git clone https://github.com/your-username/flappy-bird-neat.git
+    git clone https://github.com/AyhemKouki/AI-Flappy-Bird.git
     cd flappy-bird-neat
     ```
 
