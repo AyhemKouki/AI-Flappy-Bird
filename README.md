@@ -25,18 +25,13 @@ This project is a Python implementation of Flappy Bird powered by the NEAT (Neur
     cd flappy-bird-neat
     ```
 
-2. Install the dependencies:
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-3. Ensure you have the images in the `imgs` folder:
+2. Ensure you have the images in the `imgs` folder:
     - `bird1.png`, `bird2.png`, `bird3.png` - Frames of the bird's animation.
     - `pipe.png` - Image for the pipes.
     - `bg.png` - Background image.
     - `base.png` - Base image.
 
-4. Configure NEAT parameters:
+3. Configure NEAT parameters:
    - Modify `config.txt` for NEAT settings (population size, mutation rates, etc.).
 
 ## Usage
