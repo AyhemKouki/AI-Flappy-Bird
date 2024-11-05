@@ -1,7 +1,7 @@
 # Flappy Bird NEAT AI
 
+https://github.com/user-attachments/assets/3f389f3d-9e94-4339-8dff-7abca3616b11
 
-Uploading Untitled video - Made with Clipchamp (3).mp4…
 
 This project is a Python implementation of Flappy Bird powered by the NEAT (NeuroEvolution of Augmenting Topologies) algorithm. The objective is for the AI, using neural networks evolved through NEAT, to learn how to play the game by controlling the bird's movements, navigating through pipes, and maximizing its fitness score.
 
