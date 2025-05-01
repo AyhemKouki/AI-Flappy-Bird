@@ -25,7 +25,7 @@ This project is a Python implementation of Flappy Bird powered by the NEAT (Neur
 1. Clone the repository:
     ```bash
     git clone https://github.com/AyhemKouki/AI-Flappy-Bird.git
-    cd flappy-bird-neat
+    cd AI-Flappy-Bird
     ```
 
 2. Ensure you have the images in the `imgs` folder:
@@ -40,7 +40,7 @@ This project is a Python implementation of Flappy Bird powered by the NEAT (Neur
 ## Usage
 To run the game and start training the AI:
   ```bash
-  python flappy_bird_neat.py
+  python main.py
   ```
 ## How NEAT is Used
   Each bird is controlled by a neural network that makes a decision (to flap or not) based on the bird's current state:
